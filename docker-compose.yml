@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  oracle-db:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: oracle-crud-xe
+    environment:
+      ORACLE_PASSWORD: Password1234
+      ORACLE_CHARACTERSET: AL32UTF8
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "sqlplus", "-L", "sys/Password1234@XE", "as", "sysdba", "EXIT"]
+      interval: 10s
+      retries: 10
+
+  go-api:
+    build: .
+    container_name: go-crud-api
+    ports:
+      - "8080:8080"
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    environment:
+      DB_USERNAME: oracle_crud_api
+      DB_PASSWORD: Password1234
+      DB_CONNECTION_STRING: "oracle-db:1521/XEPDB1"
+    command: ["./main"]
+
+volumes:
+  oracle_data:
